@@ -1,0 +1,9 @@
+eclipse.preferences.version=1
+encoding//src/io/openems/edge/evcs/chargex/aqueduct/ChargexAqueduct.java=UTF-8
+encoding//src/io/openems/edge/evcs/chargex/aqueduct/ChargexAqueductImpl.java=UTF-8
+encoding//src/io/openems/edge/evcs/chargex/aqueduct/Config.java=UTF-8
+encoding//test/io/openems/edge/evcs/chargex/aqueduct/MyConfig.java=UTF-8
+encoding//test/io/openems/edge/evcs/chargex/aqueduct/MyModbusDeviceTest.java=UTF-8
+encoding/<project>=UTF-8
+encoding/bnd.bnd=UTF-8
+encoding/readme.adoc=UTF-8

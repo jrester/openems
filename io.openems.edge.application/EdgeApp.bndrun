@@ -6,8 +6,8 @@
 
 -runproperties:\
 	org.osgi.service.http.port=8080,\
-	felix.cm.dir=c:/openems/config,\
-	openems.data.dir=c:/openems/data,\
+	felix.cm.dir=/home/beicekol/.local/share/openems/config,\
+	openems.data.dir=/home/beicekol/.local/share/openems/data,\
 	org.apache.felix.eventadmin.Timeout=0,\
 	org.ops4j.pax.logging.DefaultServiceLog.level=INFO
 
@@ -207,7 +207,8 @@
 	bnd.identity;id='io.openems.edge.timeofusetariff.rabotcharge',\
 	bnd.identity;id='io.openems.edge.timeofusetariff.swisspower',\
 	bnd.identity;id='io.openems.edge.timeofusetariff.tibber',\
-
+	bnd.identity;id='jakarta.websocket-api',\
+	bnd.identity;id='io.openems.edge.evcs.chargex.aqueduct'
 -runbundles: \
 	Java-WebSocket;version='[1.5.4,1.5.5)',\
 	bcpkix;version='[1.81.0,1.81.1)',\
@@ -462,4 +463,7 @@
 	org.owasp.encoder;version='[1.3.1,1.3.2)',\
 	reactive-streams;version='[1.0.4,1.0.5)',\
 	rrd4j;version='[3.9.0,3.9.1)',\
-	stax2-api;version='[4.2.2,4.2.3)'
+	stax2-api;version='[4.2.2,4.2.3)',\
+	io.openems.edge.evcs.chargex.aqueduct;version=snapshot,\
+	jakarta.websocket-api;version='[2.1.1,2.1.2)',\
+	jakarta.websocket-client-api;version='[2.1.1,2.1.2)'
