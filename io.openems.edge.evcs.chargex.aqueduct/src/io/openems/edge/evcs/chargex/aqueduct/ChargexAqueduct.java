@@ -2,12 +2,8 @@ package io.openems.edge.evcs.chargex.aqueduct;
 
 import io.openems.common.channel.AccessMode;
 import io.openems.common.channel.Unit;
-import io.openems.common.exceptions.OpenemsError.OpenemsNamedException;
 import io.openems.common.types.OpenemsType;
-import io.openems.edge.common.channel.Channel;
 import io.openems.edge.common.channel.Doc;
-import io.openems.edge.common.channel.IntegerWriteChannel;
-import io.openems.edge.common.channel.value.Value;
 import io.openems.edge.common.component.OpenemsComponent;
 
 public interface ChargexAqueduct extends OpenemsComponent {
