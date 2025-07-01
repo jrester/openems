@@ -33,7 +33,8 @@ class RevoletionWebsocketClient extends WebSocketClient {
 						.addProperty("plan_data", "placeholder")
 						.build()
 				);
-		this.send(msg.toString());
+		log.debug("Send power plan request: "+ msg.build().toString());
+		this.send(msg.build().toString());
 	}
 	
 
@@ -54,22 +55,22 @@ class RevoletionWebsocketClient extends WebSocketClient {
 			var body = JsonUtils.parse(message).getAsJsonObject();
 			var status = body.get("status").getAsString();
 			var msg = body.get("msg").getAsString();
-			var data = body.get("data").getAsString();
+			var data = body.get("data").getAsJsonObject();
 			
-			if (status != "ok") {
+			if (!status.equals("ok")) {
 				this.log.error("Power plan failed: " + msg);
 				return;
 			}
 			
-			if(msg == "power_plan_started") {
+			if(msg.equals("power_plan_started")) {
 				this.log.info("Power plan started");
 				return;
-			} else if (msg == "power_plan_failed") {
+			} else if (msg.equals("power_plan_failed")) {
 				this.log.error("Power plan failed");
 				return;
-			} else if (msg == "power_plan_completed") {
-				this.log.error("Power plan completed");
-				var result = body.get("result").getAsJsonObject();
+			} else if (msg.equals("power_plan_completed")) {
+				this.log.info("Power plan completed");
+				var result = data.get("result").getAsJsonObject();
 				var power = result.get("power").getAsInt();
 				this.powerPlanCompletedCallback.success(power);
 			}

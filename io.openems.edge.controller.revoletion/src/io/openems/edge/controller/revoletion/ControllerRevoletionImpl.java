@@ -1,6 +1,7 @@
 package io.openems.edge.controller.revoletion;
 
 import java.net.URI;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,8 +34,7 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 	private Config config = null;
 	private RevoletionWebsocketClient revoletionClient;
 	
-	@Reference
-	private ConfigurationAdmin cm;
+	private boolean shouldPlan = true;
 	
 	@Reference(policyOption = ReferencePolicyOption.GREEDY)
 	private ManagedEvcs evcs;
@@ -50,10 +50,18 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 
 	@Activate
 	private void activate(ComponentContext context, Config config) {
+		log.info("Activating REVOL-E-TION controller");
 		super.activate(context, config.id(), config.alias(), config.enabled());
 		this.config = config;
+		if (!this.isEnabled()) {
+			log.info("Aborting because controller is disabled");
+			// abort if disabled
+			return;
+		}
 
-		URI uri = URI.create("ws://" + this.config.revoletion_ctrl_server_host() + ":" + this.config.revoletion_ctrl_server_port());
+
+		log.info("Connecting to REVOL-E-TION control server");
+		URI uri = URI.create("ws://" + this.config.revoletion_ctrl_server_host() + ":" + this.config.revoletion_ctrl_server_port() + "/ws");
 		RevoletionWebsocketClient.PowerPlanCallback callback = new RevoletionWebsocketClient.PowerPlanCallback() {
 			public void success(int power) {
 				ControllerRevoletionImpl.this.applyPowerPlanResult(power);
@@ -62,6 +70,7 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 	
 		this.revoletionClient = new RevoletionWebsocketClient(uri, callback);
 		this.revoletionClient.connect();
+		log.info("Connected to REVOL-E-TION control server");
 	}
 
 	@Deactivate
@@ -72,14 +81,23 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 
 	@Override
 	public void run() throws OpenemsNamedException {
-		var planId = "plan_" + LocalDateTime.now().toString();
-		this.log.info("Execute power plan " + planId);
-		this.revoletionClient.sendPlanRequest(planId);
+		if(shouldPlan) {
+			var planId = "plan_" + Instant.now().toEpochMilli();
+			this.log.info("Execute power plan " + planId);
+			this.revoletionClient.sendPlanRequest(planId);
+			this.shouldPlan = false;
+		}
 	}
 	
 
 	private void applyPowerPlanResult(int power) {
+		this.shouldPlan = true;
 		this.log.info("Apply power plan result " + power);
-		this.evcs._setMinimumPower(power);
+		try {
+			this.evcs.applyChargePowerLimit(power);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 }
