@@ -44,13 +44,13 @@ public class MyConfig extends AbstractComponentConfig implements Config {
 	}
 
 	@Override
-	public String revoletion_ctrl_server_host() {
+	public String server_host() {
 		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	public int revoletion_ctrl_server_port() {
+	public int server_port() {
 		// TODO Auto-generated method stub
 		return 0;
 	}

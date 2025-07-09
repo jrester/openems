@@ -17,11 +17,11 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 	@AttributeDefinition(name = "Is enabled?", description = "Is this Component enabled?")
 	boolean enabled() default true;
 
-	@AttributeDefinition(name = "REVOL-E-TION CTRL Host", description = "Host where the REVOL-E-TION control server can be reached.", required = true)
-	String revoletion_ctrl_server_host() default "revol_e_tion_ctrl";
+	@AttributeDefinition(name = "REVOL-E-TION CTRL Host", description = "Host where the REVOL-E-TION control server can be reached.")
+	String server_host();
 
 	@AttributeDefinition(name = "REVOL-E-TION CTRL Port", description = "Port where the REVOL-E-TION control server can be reached")
-	int revoletion_ctrl_server_port() default 8080;
+	int server_port() default 8080;
 
 	@AttributeDefinition(name = "Evcs-IDs", description = "ID of Evcs device", required = true)
 	String[] evcs_ids() default { "evcs0"};

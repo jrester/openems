@@ -4,18 +4,20 @@ import java.net.URI;
 import java.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
+import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.Designate;
 
 import io.openems.common.exceptions.OpenemsError.OpenemsNamedException;
 import io.openems.edge.common.component.AbstractOpenemsComponent;
+import io.openems.edge.common.component.ComponentManager;
 import io.openems.edge.common.component.OpenemsComponent;
 import io.openems.edge.controller.api.Controller;
 import io.openems.edge.evcs.api.ManagedEvcs;
@@ -28,12 +30,20 @@ import io.openems.edge.evcs.api.ManagedEvcs;
 )
 public class ControllerRevoletionImpl extends AbstractOpenemsComponent implements ControllerRevoletion, Controller, OpenemsComponent {
 	private Logger log = LoggerFactory.getLogger(ControllerRevoletionImpl.class);
+	
+	@Reference
+	private ConfigurationAdmin cm;
+	
+	@Reference
+	private ComponentManager componentManager;
+	
 
-	private Config config = null;
+	private Config config;
 	private RevoletionWebsocketClient revoletionClient;
 
 	private boolean connected = false;
 	private boolean shouldPlan = true;
+
 
 	@Reference(policyOption = ReferencePolicyOption.GREEDY)
 	private ManagedEvcs evcs;
@@ -51,25 +61,51 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 	private void activate(ComponentContext context, Config config) {
 		this.log.info("Activating REVOL-E-TION controller");
 		super.activate(context, config.id(), config.alias(), config.enabled());
-		this.config = config;
+		
 		if (!this.isEnabled()) {
 			this.log.info("Aborting because controller is disabled");
-			// abort if disabled
 			return;
 		}
 
-
+		this.applyConfig(config);
+	}
+	
+	@Modified
+	private void modified(ComponentContext context, Config config) throws OpenemsNamedException {
+		this.log.info("Configuration for REVOL-E-TION controller was changed; restarting client");
+		try {
+			this.revoletionClient.closeBlocking();
+		} catch (InterruptedException e) {
+			this.log.warn("Failed to close existing REVOL-E-TION connection: " + e);
+		}
+		this.applyConfig(config);
+		super.modified(context, config.id(), config.alias(), config.enabled());
+	}
+	
+	private void applyConfig(Config config) {
+		this.log.info("Applying config: " + config.toString());
+		this.config = config;
 		this.log.info("Connecting to REVOL-E-TION control server");
-		URI uri = URI.create("ws://" + this.config.revoletion_ctrl_server_host() + ":" + this.config.revoletion_ctrl_server_port() + "/ws");
+		URI uri = URI.create("ws://" + this.config.server_host() + ":" + this.config.server_port() + "/ws");
 		RevoletionWebsocketClient.PowerPlanCallback callback = new RevoletionWebsocketClient.PowerPlanCallback() {
 			public void success(int power) {
 				ControllerRevoletionImpl.this.applyPowerPlanResult(power);
+			}
+			public void error(String msg) {
+				ControllerRevoletionImpl.this.shouldPlan = true;
 			}
 		};
 
 		this.revoletionClient = new RevoletionWebsocketClient(uri, callback);
 
-		this.ensureConnected();
+		try {
+			this.connected = this.revoletionClient.connectBlocking();
+		} catch (InterruptedException e) {
+			this.log.warn("Failed to connect to REVOL-E-TION control server at " + this.revoletionClient.getURI().toString() + ". Will retry.");
+			return;
+		}
+		
+		this.log.info("Connected to REVOL-E-TION control server at " + this.revoletionClient.getURI().toString());
 	}
 
 	private boolean ensureConnected() {
@@ -78,7 +114,7 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 		try {
 			this.connected = this.revoletionClient.reconnectBlocking();
 		} catch (InterruptedException e) {
-			this.log.warn("Failed to connect to REVOL-E-TION control server. Will retry.");
+			this.log.warn("Failed to connect to REVOL-E-TION control server at " + this.revoletionClient.getURI().toString() + ". Will retry.");
 			return false;
 		}
 
@@ -86,7 +122,7 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 			this.log.info("Connected to REVOL-E-TION control server");
 			return true;
 		} else {
-			this.log.warn("Failed to connect to REVOL-E-TION control server. Will retry.");
+			this.log.warn("Failed to connect to REVOL-E-TION control server at " + this.revoletionClient.getURI().toString() + ". Will retry.");
 			return false;
 		}
 	}
@@ -94,7 +130,9 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 	@Deactivate
 	protected void deactivate() {
 		super.deactivate();
-		this.revoletionClient.close();
+		try {
+			this.revoletionClient.closeBlocking();
+		} catch(InterruptedException e) { }
 	}
 
 	@Override

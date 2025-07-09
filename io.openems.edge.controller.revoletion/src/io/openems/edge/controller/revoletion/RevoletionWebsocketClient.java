@@ -13,6 +13,7 @@ import io.openems.common.utils.JsonUtils;
 
 class RevoletionWebsocketClient extends WebSocketClient {
 	public interface PowerPlanCallback {
+		public void error(String msg);
 		public void success(int power);
 	}
 
@@ -59,6 +60,7 @@ class RevoletionWebsocketClient extends WebSocketClient {
 
 			if (!status.equals("ok")) {
 				this.log.error("Power plan failed: " + msg);
+				this.powerPlanCompletedCallback.error(msg);
 				return;
 			}
 
@@ -67,6 +69,7 @@ class RevoletionWebsocketClient extends WebSocketClient {
 				return;
 			} else if (msg.equals("power_plan_failed")) {
 				this.log.error("Power plan failed");
+				this.powerPlanCompletedCallback.error(msg);
 				return;
 			} else if (msg.equals("power_plan_completed")) {
 				this.log.info("Power plan completed");
@@ -77,6 +80,7 @@ class RevoletionWebsocketClient extends WebSocketClient {
 		} catch (OpenemsNamedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			this.powerPlanCompletedCallback.error("");
 			return;
 		}
 
