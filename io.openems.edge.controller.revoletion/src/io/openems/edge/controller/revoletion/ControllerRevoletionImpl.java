@@ -1,9 +1,9 @@
 package io.openems.edge.controller.revoletion;
 
 import java.net.URI;
+import java.time.Clock;
 import java.time.Instant;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
 import org.osgi.service.component.annotations.Activate;
@@ -14,6 +14,8 @@ import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.metatype.annotations.Designate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.openems.common.exceptions.OpenemsError.OpenemsNamedException;
 import io.openems.edge.common.component.AbstractOpenemsComponent;
@@ -42,7 +44,8 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 	private RevoletionWebsocketClient revoletionClient;
 
 	private boolean connected = false;
-	private boolean shouldPlan = true;
+	private Instant lastPlan;
+	private Clock clock;
 
 
 	@Reference(policyOption = ReferencePolicyOption.GREEDY)
@@ -67,6 +70,8 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 			return;
 		}
 
+		this.clock = this.componentManager.getClock();
+		
 		this.applyConfig(config);
 	}
 	
@@ -92,7 +97,6 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 				ControllerRevoletionImpl.this.applyPowerPlanResult(power);
 			}
 			public void error(String msg) {
-				ControllerRevoletionImpl.this.shouldPlan = true;
 			}
 		};
 
@@ -137,25 +141,35 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 
 	@Override
 	public void run() throws OpenemsNamedException {
-		if(!this.ensureConnected()) { return; }
-
-		if(shouldPlan) {
-			var planId = "plan_" + Instant.now().toEpochMilli();
-			this.log.info("Execute power plan " + planId);
-			this.revoletionClient.sendPlanRequest(planId);
-			this.shouldPlan = false;
+		if(!this.shouldPlan()) {
+			return;
 		}
+		
+		if(!this.ensureConnected()) { 
+			return; 
+		}
+	
+		var planId = "plan_" + Instant.now().toEpochMilli();
+		this.log.info("Execute power plan " + planId);
+		this.revoletionClient.sendPlanRequest(planId);
+		this.lastPlan = Instant.now(clock);
 	}
 
 
 	private void applyPowerPlanResult(int power) {
-		this.shouldPlan = true;
 		this.log.info("Apply power plan result " + power);
 		try {
 			this.evcs.applyChargePowerLimit(power);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+	
+	private boolean shouldPlan() {
+		if(this.lastPlan == null) {
+			return true;
+		}
+		
+		return Instant.now(this.clock).isAfter(this.lastPlan.plusSeconds(60));
 	}
 }
