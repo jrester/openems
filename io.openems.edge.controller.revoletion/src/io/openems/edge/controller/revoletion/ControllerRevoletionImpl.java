@@ -88,7 +88,6 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 	}
 	
 	private void applyConfig(Config config) {
-		this.log.info("Applying config: " + config.toString());
 		this.config = config;
 		this.log.info("Connecting to REVOL-E-TION control server");
 		URI uri = URI.create("ws://" + this.config.server_host() + ":" + this.config.server_port() + "/ws");
@@ -157,7 +156,7 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 
 
 	private void applyPowerPlanResult(int power) {
-		this.log.info("Apply power plan result " + power);
+		this.log.info("Apply charge power limit of " + power + "W to " + this.evcs.id());
 		try {
 			this.evcs.applyChargePowerLimit(power);
 		} catch (Exception e) {

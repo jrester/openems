@@ -54,7 +54,8 @@ import io.openems.edge.timedata.api.TimedataProvider;
 		immediate = true, //
 		configurationPolicy = ConfigurationPolicy.REQUIRE //
 )
-public class EvcsChargexAqueductImpl extends AbstractOpenemsModbusComponent implements Evcs, ElectricityMeter, EvcsChargexAqueduct, ModbusComponent, OpenemsComponent, ManagedEvcs, TimedataProvider, DeprecatedEvcs, EventHandler {
+public class EvcsChargexAqueductImpl extends AbstractOpenemsModbusComponent implements Evcs, ElectricityMeter, EvcsChargexAqueduct, 
+	ModbusComponent, OpenemsComponent, ManagedEvcs, TimedataProvider, DeprecatedEvcs, EventHandler {
 
 	private final Logger log = LoggerFactory.getLogger(EvcsChargexAqueductImpl.class);
 
@@ -124,63 +125,17 @@ public class EvcsChargexAqueductImpl extends AbstractOpenemsModbusComponent impl
 	@Override
 	protected ModbusProtocol defineModbusProtocol() {
 		final var modbusProtocol = new ModbusProtocol(this,
-			    // Identification and Detection
-//			    new FC3ReadRegistersTask(0x0002, Priority.LOW,
-//			        m(ChargexAqueduct.ChannelId.UNIT_ID, new UnsignedDoublewordElement(0x0002))),
-//
-//			    new FC3ReadRegistersTask(0x0004, Priority.LOW,
-//			        m(ChargexAqueduct.ChannelId.MANUFACTURER, new StringWordElement(0x0004, 8))),
-//
-//			    new FC3ReadRegistersTask(0x000C, Priority.LOW,
-//			        m(ChargexAqueduct.ChannelId.DEVICE_TYPE, new StringWordElement(0x000C, 8))),
-//
-//			    new FC3ReadRegistersTask(0x0014, Priority.LOW,
-//			        m(ChargexAqueduct.ChannelId.FW_VERSION, new StringWordElement(0x0014, 8))),
-//
-//			    new FC3ReadRegistersTask(0x001C, Priority.LOW,
-//			        m(ChargexAqueduct.ChannelId.SERIAL_NR, new StringWordElement(0x001C, 8))),
-
 			    new FC3ReadRegistersTask(0x0024, Priority.HIGH,
 			        m(ElectricityMeter.ChannelId.ACTIVE_POWER, new UnsignedDoublewordElement(0x0024))),
-//			        m(ChargexAqueduct.ChannelId.PAC_MINIMUM, new UnsignedDoublewordElement(0x0026)),
-//			        m(ElectricityMeter.ChannelId.CURRENT_L1, new UnsignedDoublewordElement(0x0028)),
-//			        m(ElectricityMeter.ChannelId.CURRENT_L2, new UnsignedDoublewordElement(0x002A)),
-//			        m(ElectricityMeter.ChannelId.CURRENT_L3, new UnsignedDoublewordElement(0x002C)),
-//			        m(ChargexAqueduct.ChannelId.CONNECTED_CARS, new UnsignedDoublewordElement(0x002E)),
-//			        m(ChargexAqueduct.ChannelId.ACTIVE_SESSIONS, new UnsignedDoublewordElement(0x0030)),
-//			        m(ChargexAqueduct.ChannelId.N_MODULES, new UnsignedDoublewordElement(0x0032)),
-//			        m(ChargexAqueduct.ChannelId.SYSTEM_STATUS, new UnsignedDoublewordElement(0x0034)),
-//			        m(ChargexAqueduct.ChannelId.MAX_CURRENT, new UnsignedDoublewordElement(0x0036))),
 
-			    // Per Module Information - Module 0
 			    new FC3ReadRegistersTask(0x0066, Priority.HIGH,
-			        //m(ElectricityMeter.ChannelId.ACTIVE_POWER, new UnsignedDoublewordElement(0x0064)), // active power of module
 			        m(ElectricityMeter.ChannelId.CURRENT_L1, new UnsignedDoublewordElement(0x0066)),
 			        m(ElectricityMeter.ChannelId.CURRENT_L2, new UnsignedDoublewordElement(0x0068)),
 			        m(ElectricityMeter.ChannelId.CURRENT_L3, new UnsignedDoublewordElement(0x006A)),
 			        m(EvcsChargexAqueduct.ChannelId.STATES_CP_MODULE_0, new UnsignedWordElement(0x006C))),
-//			        m(ChargexAqueduct.ChannelId.ERRORS_CP_MODULE_0, new UnsignedWordElement(0x006E))),
-
-
-			    // Readable Configuration - Low Priority
-			    new FC3ReadRegistersTask(0x01F4, Priority.LOW,
-			        m(EvcsChargexAqueduct.ChannelId.PAC_TARGET_TIMEOUT, new UnsignedDoublewordElement(0x01F4)),
-			        m(EvcsChargexAqueduct.ChannelId.PAC_DEFAULT_POWER, new UnsignedDoublewordElement(0x01F6)),
-			        m(EvcsChargexAqueduct.ChannelId.PAC_TARGET_POWER, new UnsignedDoublewordElement(0x01F8)),
-			        m(EvcsChargexAqueduct.ChannelId.CHARGING_MODE, new UnsignedDoublewordElement(0x01FA))),
-
-			    // Write Tasks for Control
-			    new FC16WriteRegistersTask(0x01F4,
-			        m(EvcsChargexAqueduct.ChannelId.SET_PAC_TARGET_TIMEOUT, new UnsignedDoublewordElement(0x01F4))),
-
-			    new FC16WriteRegistersTask(0x01F6,
-			        m(EvcsChargexAqueduct.ChannelId.SET_PAC_DEFAULT_POWER, new UnsignedDoublewordElement(0x01F6))),
 
 			    new FC16WriteRegistersTask(0x01F8,
-			        m(EvcsChargexAqueduct.ChannelId.SET_PAC_TARGET_POWER, new UnsignedDoublewordElement(0x01F8))),
-
-			    new FC16WriteRegistersTask(0x01FA,
-			        m(EvcsChargexAqueduct.ChannelId.SET_CHARGING_MODE, new UnsignedDoublewordElement(0x01FA)))
+			        m(EvcsChargexAqueduct.ChannelId.SET_PAC_TARGET_POWER, new UnsignedDoublewordElement(0x01F8)))
 			);
 
 		this.addStatusListener();
@@ -269,7 +224,7 @@ public class EvcsChargexAqueductImpl extends AbstractOpenemsModbusComponent impl
 		if (this.checkWriteIntervall()) {
 			return false;
 		}
-		this.log.info("apply charge power limit " + power);
+
 		this.setTargetPower(power);
 		this.lastWrite = Instant.now(this.clock);
 		return true;

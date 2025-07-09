@@ -51,7 +51,7 @@ class RevoletionWebsocketClient extends WebSocketClient {
 
 	@Override
 	public void onMessage(String message) {
-		this.log.info("received message: " + message);
+		this.log.debug("received message: " + message);
 		try {
 			var body = JsonUtils.parse(message).getAsJsonObject();
 			var status = body.get("status").getAsString();
@@ -65,14 +65,17 @@ class RevoletionWebsocketClient extends WebSocketClient {
 			}
 
 			if(msg.equals("power_plan_started")) {
-				this.log.info("Power plan started");
+				var planId = data.get("plan_id").getAsString();
+				this.log.info("Power plan " + planId + " started");
 				return;
 			} else if (msg.equals("power_plan_failed")) {
-				this.log.error("Power plan failed");
+				var planId = data.get("plan_id").getAsString();
+				this.log.error("Power plan " + planId + " failed");
 				this.powerPlanCompletedCallback.error(msg);
 				return;
 			} else if (msg.equals("power_plan_completed")) {
-				this.log.info("Power plan completed");
+				var planId = data.get("plan_id").getAsString();
+				this.log.info("Power plan " + planId + " completed");
 				var result = data.get("result").getAsJsonObject();
 				var power = result.get("power").getAsInt();
 				this.powerPlanCompletedCallback.success(power);
