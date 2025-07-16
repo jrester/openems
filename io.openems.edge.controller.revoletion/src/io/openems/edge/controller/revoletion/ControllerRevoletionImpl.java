@@ -5,7 +5,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
+import java.time.ZonedDateTime;
 
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
@@ -190,10 +190,28 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 	}
 	
 	private boolean shouldPlan() {
+		int intervalMinutes = this.config.plan_interval();
+		
+		Instant now = Instant.now(this.clock);
+		ZonedDateTime nowZoned = now.atZone(this.clock.getZone());
+		int currentMinute = nowZoned.getMinute();
+		boolean isAtIntervalBoundary = currentMinute % intervalMinutes == 0;
+		
+		if(!isAtIntervalBoundary) {
+			return false;
+		}	
+		
 		if(this.lastPlan == null) {
 			return true;
 		}
 		
-		return Instant.now(this.clock).isAfter(this.lastPlan.plusSeconds(this.config.plan_interval() * 60));
+		ZonedDateTime lastPlanZoned = this.lastPlan.atZone(this.clock.getZone());
+		
+	    int currentIntervalSlot = nowZoned.getMinute() / intervalMinutes;
+	    int lastPlanIntervalSlot = lastPlanZoned.getMinute() / intervalMinutes;
+	    
+	    return currentIntervalSlot != lastPlanIntervalSlot || 
+	            nowZoned.getHour() != lastPlanZoned.getHour() ||
+	            !nowZoned.toLocalDate().equals(lastPlanZoned.toLocalDate());
 	}
 }
