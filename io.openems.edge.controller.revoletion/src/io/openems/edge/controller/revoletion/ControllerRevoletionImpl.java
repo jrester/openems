@@ -154,12 +154,14 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 
 	@Override
 	public void run() throws OpenemsNamedException {
+		if(!this.shouldPlan()) {
+			return;
+		}
 		if(this.evcs.getStatus() != Status.CHARGING && this.evcs.getStatus() != Status.READY_FOR_CHARGING && this.evcs.getStatus() != Status.STARTING) {
 			if(this.planning) {
+				this.log.info("Not planning because status of evcs is " + this.evcs.getStatus());
 				this.resetPlanningState();
 			}
-		}
-		if(!this.shouldPlan()) {
 			return;
 		}
 		
@@ -170,7 +172,7 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 		var planStartTime = LocalDateTime.now();
 		var planId = "plan_" + planStartTime.toEpochSecond(ZoneOffset.UTC);
 		this.log.info("Execute power plan " + planId);
-		var planData = new RevoletionWebsocketClient.PowerPlanData(planStartTime, this.lastSoc);
+		var planData = new RevoletionWebsocketClient.PowerPlanData(this.lastSoc);
 		this.revoletionClient.sendPlanRequest(planId, planData);
 		
 		this.lastPlan = Instant.now(this.clock);

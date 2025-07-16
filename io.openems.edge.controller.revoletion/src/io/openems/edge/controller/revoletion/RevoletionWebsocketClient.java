@@ -2,8 +2,6 @@ package io.openems.edge.controller.revoletion;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -19,7 +17,7 @@ class RevoletionWebsocketClient extends WebSocketClient {
 		public void success(int power, double soc);
 	}
 	
-	public record PowerPlanData(LocalDateTime startTime, double bevSoc) {};
+	public record PowerPlanData(double bevSoc) {};
 
 	private final Logger log = LoggerFactory.getLogger(RevoletionWebsocketClient.class);
 
@@ -31,13 +29,11 @@ class RevoletionWebsocketClient extends WebSocketClient {
 	}
 
 	protected void sendPlanRequest(String planId, PowerPlanData planData) {
-		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d.M.yyyy HH:mm");
 		var msg = JsonUtils.buildJsonObject()
 				.addProperty("command", "plan")
 				.add("data", JsonUtils.buildJsonObject()
 						.addProperty("plan_id", planId)
 						.add("plan_data", JsonUtils.buildJsonObject()
-							.addProperty("start_time", planData.startTime().format(formatter))
 							.addProperty("bev_soc", planData.bevSoc())
 							.build()
 						)
