@@ -2,6 +2,8 @@ package io.openems.edge.controller.revoletion;
 
 import java.net.URI;
 import java.nio.ByteBuffer;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.handshake.ServerHandshake;
@@ -14,8 +16,10 @@ import io.openems.common.utils.JsonUtils;
 class RevoletionWebsocketClient extends WebSocketClient {
 	public interface PowerPlanCallback {
 		public void error(String msg);
-		public void success(int power);
+		public void success(int power, double soc);
 	}
+	
+	public record PowerPlanData(LocalDateTime startTime, double bevSoc) {};
 
 	private final Logger log = LoggerFactory.getLogger(RevoletionWebsocketClient.class);
 
@@ -26,12 +30,17 @@ class RevoletionWebsocketClient extends WebSocketClient {
 		this.powerPlanCompletedCallback = powerPlanCompletedCallback;
 	}
 
-	protected void sendPlanRequest(String planId) {
+	protected void sendPlanRequest(String planId, PowerPlanData planData) {
+		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("d.M.yyyy HH:mm");
 		var msg = JsonUtils.buildJsonObject()
 				.addProperty("command", "plan")
 				.add("data", JsonUtils.buildJsonObject()
 						.addProperty("plan_id", planId)
-						.addProperty("plan_data", "placeholder")
+						.add("plan_data", JsonUtils.buildJsonObject()
+							.addProperty("start_time", planData.startTime().format(formatter))
+							.addProperty("bev_soc", planData.bevSoc())
+							.build()
+						)
 						.build()
 				);
 		log.debug("Send power plan request: "+ msg.build().toString());
@@ -78,7 +87,8 @@ class RevoletionWebsocketClient extends WebSocketClient {
 				this.log.info("Power plan " + planId + " completed");
 				var result = data.get("result").getAsJsonObject();
 				var power = result.get("power").getAsInt();
-				this.powerPlanCompletedCallback.success(power);
+				var soc = result.get("soc").getAsDouble();
+				this.powerPlanCompletedCallback.success(power, soc);
 			}
 		} catch (OpenemsNamedException e) {
 			// TODO Auto-generated catch block

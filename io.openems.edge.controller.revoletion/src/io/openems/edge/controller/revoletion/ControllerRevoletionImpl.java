@@ -3,6 +3,9 @@ package io.openems.edge.controller.revoletion;
 import java.net.URI;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 import org.osgi.service.cm.ConfigurationAdmin;
 import org.osgi.service.component.ComponentContext;
@@ -23,6 +26,7 @@ import io.openems.edge.common.component.ComponentManager;
 import io.openems.edge.common.component.OpenemsComponent;
 import io.openems.edge.controller.api.Controller;
 import io.openems.edge.evcs.api.ManagedEvcs;
+import io.openems.edge.evcs.api.Status;
 
 @Designate(ocd = Config.class, factory = true)
 @Component(//
@@ -39,13 +43,16 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 	@Reference
 	private ComponentManager componentManager;
 	
-
 	private Config config;
-	private RevoletionWebsocketClient revoletionClient;
-
-	private boolean connected = false;
-	private Instant lastPlan;
 	private Clock clock;
+	
+	private RevoletionWebsocketClient revoletionClient;
+	private boolean connected = false;
+	
+	//private LocalDateTime startTime = LocalDateTime.parse("17.7.2025 10:30", DateTimeFormatter.ofPattern("d.M.yyyy HH:mm"));
+	private Instant lastPlan = null;
+	private double lastSoc = 0.3;
+	private boolean planning = false;
 
 
 	@Reference(policyOption = ReferencePolicyOption.GREEDY)
@@ -92,7 +99,8 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 		this.log.info("Connecting to REVOL-E-TION control server");
 		URI uri = URI.create("ws://" + this.config.server_host() + ":" + this.config.server_port() + "/ws");
 		RevoletionWebsocketClient.PowerPlanCallback callback = new RevoletionWebsocketClient.PowerPlanCallback() {
-			public void success(int power) {
+			public void success(int power, double soc) {
+				ControllerRevoletionImpl.this.lastSoc = soc;
 				ControllerRevoletionImpl.this.applyPowerPlanResult(power);
 			}
 			public void error(String msg) {
@@ -137,9 +145,20 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 			this.revoletionClient.closeBlocking();
 		} catch(InterruptedException e) { }
 	}
+	
+	private void resetPlanningState() {
+		this.lastPlan = null;
+		this.lastSoc = 0.3;
+		this.planning = false;
+	}
 
 	@Override
 	public void run() throws OpenemsNamedException {
+		if(this.evcs.getStatus() != Status.CHARGING && this.evcs.getStatus() != Status.READY_FOR_CHARGING && this.evcs.getStatus() != Status.STARTING) {
+			if(this.planning) {
+				this.resetPlanningState();
+			}
+		}
 		if(!this.shouldPlan()) {
 			return;
 		}
@@ -148,10 +167,14 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 			return; 
 		}
 	
-		var planId = "plan_" + Instant.now().toEpochMilli();
+		var planStartTime = LocalDateTime.now();
+		var planId = "plan_" + planStartTime.toEpochSecond(ZoneOffset.UTC);
 		this.log.info("Execute power plan " + planId);
-		this.revoletionClient.sendPlanRequest(planId);
-		this.lastPlan = Instant.now(clock);
+		var planData = new RevoletionWebsocketClient.PowerPlanData(planStartTime, this.lastSoc);
+		this.revoletionClient.sendPlanRequest(planId, planData);
+		
+		this.lastPlan = Instant.now(this.clock);
+		this.planning = true;
 	}
 
 
@@ -169,6 +192,6 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 			return true;
 		}
 		
-		return Instant.now(this.clock).isAfter(this.lastPlan.plusSeconds(60));
+		return Instant.now(this.clock).isAfter(this.lastPlan.plusSeconds(this.config.plan_interval()));
 	}
 }

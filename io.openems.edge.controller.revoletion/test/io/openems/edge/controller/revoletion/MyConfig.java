@@ -66,6 +66,11 @@ public class MyConfig extends AbstractComponentConfig implements Config {
 		// TODO Auto-generated method stub
 		return false;
 	}
+	
+	@Override
+	public int plan_interval() {
+		return 0;
+	}
 
 //	@Override
 //	public String setting0() {
