@@ -144,6 +144,9 @@ public class EvcsChargexAqueductImpl extends AbstractOpenemsModbusComponent impl
 
 	private void addStatusListener() {
 		this.channel(EvcsChargexAqueduct.ChannelId.STATES_CP_MODULE_0).onSetNextValue(s -> {
+			if(s == null) {
+				this._setStatus(Status.UNDEFINED);
+			}
 	        int stateValue = (int)s.get();
 
 	        // Extract bit flags from the state value

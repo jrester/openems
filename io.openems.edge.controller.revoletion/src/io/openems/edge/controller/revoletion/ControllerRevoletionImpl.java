@@ -194,6 +194,6 @@ public class ControllerRevoletionImpl extends AbstractOpenemsComponent implement
 			return true;
 		}
 		
-		return Instant.now(this.clock).isAfter(this.lastPlan.plusSeconds(this.config.plan_interval()));
+		return Instant.now(this.clock).isAfter(this.lastPlan.plusSeconds(this.config.plan_interval() * 60));
 	}
 }
