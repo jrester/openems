@@ -24,7 +24,7 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 	int server_port() default 8080;
 	
 	@AttributeDefinition(name = "Plan interval", description = "The interval in which REVOL-E-TION will be executed")
-	int plan_interval() default 15;
+	int plan_interval() default 1;
 
 	@AttributeDefinition(name = "Evcs-IDs", description = "ID of Evcs device", required = true)
 	String[] evcs_ids() default { "evcs0"};
